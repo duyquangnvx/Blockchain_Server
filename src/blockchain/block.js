@@ -27,6 +27,16 @@ let Block = cc.Class.extend({
         }
 
         console.log("Block mined: " + this.hash);
+    },
+
+    hasValidTransaction: function () {
+        for (const trans of this.transactions) {
+            if (!trans.isValid()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 })

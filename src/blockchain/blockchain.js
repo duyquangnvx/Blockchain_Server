@@ -19,24 +19,34 @@ let Blockchain = cc.Class.extend({
         return new Block(0, "01/01/2021", "Genesis block", "0");
     },
 
-    getLastBlock: function () {
+    getLatestBlock: function () {
         return this.chain[this.chain.length - 1];
     },
 
     minePendingTransactions: function (miningRewardAddress) {
-        let block = new Block(Date.now(), this.pendingTransactions);
+        const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
+        this.pendingTransactions.push(rewardTx);
+
+        const block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
         block.mineBlock(this.difficulty);
 
-        console.log('Block successfully mined!');
+        //debug('Block successfully mined!');
         this.chain.push(block);
 
         // reset pending transactions
-        this.pendingTransactions = [
-            new Transaction(null, miningRewardAddress, this.miningReward)
-        ];
+        this.pendingTransactions = [];
+
     },
 
-    createTransaction: function (transaction) {
+    addTransaction: function (transaction) {
+        if (!transaction.fromAddress || !transaction.toAddress) {
+            throw Error('Transaction must include from and to address');
+        }
+
+        if (!transaction.isValid()) {
+            throw new Error('Cannot add invalid transaction to chain');
+        }
+
         this.pendingTransactions.push(transaction);
     },
 
@@ -62,6 +72,10 @@ let Blockchain = cc.Class.extend({
         for (let i = 1; i < this.chain.length; i++) {
             const currBlock = this.chain[i];
             const prevBlock = this.chain[i - 1];
+
+            if (currBlock.hasValidTransaction()) {
+                return false;
+            }
 
             if (currBlock.hash !== currBlock.calculateHash()) {
                 return false;
